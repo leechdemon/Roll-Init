@@ -1,0 +1,165 @@
+<style>
+#Names {
+	float:left;
+}
+#Pointer {
+	float: left;
+	width: 25px;
+}
+#Round {
+	padding-bottom: 15px;
+}
+#Tools {
+	float: left;
+	width: 17%;
+	background-color: #555;
+	color: white;
+	padding: .625em;
+}
+#Window {
+	background-color: #999;
+	float: left;
+	width: 80%;
+	padding: .625em;
+}
+.Indent {
+	padding-left: 20px;
+	clear: both;
+}
+.Right {
+	float:right;
+}
+</style>
+
+<script>
+class Player {
+	constructor(Name, Roll) {
+		this.name = Name;
+		this.roll = Roll;
+		
+		this.stats = [];
+		this.stats.str = 0;
+		this.stats.dex = 0;
+		this.stats.con = 0;
+		this.stats.int = 0;
+		this.stats.wis = 0;
+		this.stats.cha = 0;
+		
+		this.saves = [];
+		this.saves.fort = 0;
+		this.saves.reflex = 0;
+		this.saves.will = 0;
+		
+		this.buffs = [];
+	}
+}
+class Buff {
+	constructor(BuffName, Duration, Targets) {
+		this.duration = Duration;
+		this.age = 0;
+	}
+}
+
+function AddBuff(Name,Duration,Targets) {
+	NewBuff = new Buff(Name, Duration);
+	
+	for(var x in AllPlayers) {
+		if(x==Targets) {
+			AllPlayers[x].buffs.push(NewBuff);
+			console.log(AllPlayers[x]);
+		}
+	}
+}
+function AddPlayer() {
+	var NewPlayerName = document.getElementById("AddPlayerName").value;
+	var NewPlayerRoll = document.getElementById("AddPlayerRoll").value;
+	
+	NewPlayer = new Player(NewPlayerName, NewPlayerRoll);
+	AllPlayers[NewPlayerID] = NewPlayer;
+	NewPlayerID++;
+	AllPlayers.sort(function(a, b) {
+    return a.roll - b.roll;
+	});
+	
+	if(Round == 1 && Step == 0) {//Move the pointer if initiative has already started
+		<!-- console.log("Don't move Pointer"); -->
+	}
+	else {
+		if(parseInt(AllPlayers[Step].roll)>NewPlayerRoll) {
+			Step++;
+		}
+		<!-- console.log("Pointer Moved!"); -->
+	}
+	
+	RedrawList();
+	console.log(AllPlayers);
+}
+function NextUp() {
+	Step++;
+		
+	var InitPosition = Step % AllPlayers.length;
+	if(InitPosition == 0) {Round++;Step=0;}
+	document.getElementById("Round").innerHTML = "Round " + Round;
+
+	RedrawList();
+}
+function RedrawList() {
+	document.getElementById("Names").innerHTML = "";
+	for (x in AllPlayers) {//Redraw Players
+		document.getElementById("Names").innerHTML += AllPlayers[x].roll +' - '+ AllPlayers[x].name + "<br>";
+	}
+	
+	{//Redraw Pointer
+		var PointerDiv = document.getElementById("Pointer");
+		PointerDiv.innerHTML = "";
+		var InitPosition = Step % AllPlayers.length;
+		for(var x=0;x<(InitPosition);x++) {
+			PointerDiv.innerHTML += "<br>";
+		}
+		PointerDiv.innerHTML += ">";
+	}
+}
+
+var AllPlayers = [];
+var NewPlayerID = 0;
+var Round = 1;
+var Step = 0;
+</script>
+
+<body style="margin: 0px;">
+<div id="Tools">
+<form action="javascript:AddPlayer();">Add Player: <br>
+	<div class="Indent">Player Name: <input type="text" id="AddPlayerName" class="Right"></input></div>
+	<div class="Indent">Player Roll: <input type="text" id="AddPlayerRoll" class="Right"></input></div>
+	<button style="display:none;"></button>
+</form>
+
+<form action="javascript:NextUp();">Next Up: <br>
+	<button class="Right">Next Up</button>
+</form>
+
+<br><hr>
+
+<form action="javascript:AddBuff('Blind',3,0);">Add Buff (Blind, 3, 1st Player): <br>
+	<button class="Right">Add Buff</button>
+</form>
+
+<br><br><br><br>Known Issues:<ul>
+<li>Duplicate rolls are alphabetical, not by Dex</li>
+<li></li>
+</ul>
+<br>Features (AKA, Fixed Issues):<ul>
+<li>Getting to the top of the order increments "Round"</li>
+<li>Adding players in mid-combat doesn't affect pointed position of "current round".</li>
+</ul>
+</div>
+<div id="Window">
+	<div id="Round">Round 1</div>
+	<div id="Pointer">></div>
+	<div id="Names">Add players</div>
+	<div id="Buffs"></div>
+</div>
+</body>
+<script>
+
+</script>
