@@ -201,6 +201,25 @@ function AddBuff(Name,Description,Duration,Target) {
 	
 	RedrawList();
 }
+function AddBuffAPI(BuffName) {
+	var Level = document.getElementById("SpellListLevel").value;
+	<!-- var Level = 5; -->
+	
+	for(var x in SpellList) {
+		if(SpellList[x].title.$t == BuffName) {
+			var Duration = SpellList[x].gsx$duration.$t;
+			Duration = Duration.replace("level", Level);
+			Duration = Duration.replace("min.","*10");
+			Duration = Duration.replace("round","");
+			
+			Duration = Duration.replace("/","*");
+			Duration = Duration.replace(" ","");
+			
+			Duration = eval(Duration);
+			window.alert(Duration);
+		}
+	}
+}
 function AddPlayer() {
 	var NewPlayerName = document.getElementById("AddPlayerName").value;
 	var NewPlayerRoll = document.getElementById("AddPlayerRoll").value
@@ -244,6 +263,30 @@ function KillPlayer(PlayerID) {
 	for(var x in AllPlayers) {
 		AllPlayers[x].playerid = x;
 	}
+}
+function LiveSearch() {
+	SearchTerm = document.getElementById("search").value;
+	document.getElementById("SpellList").innerHTML="";
+	var TestString = "";
+	var Limit = "";
+	
+	for(x=0;x<SpellList.length;x++) {
+		TestString = SpellList[x].title.$t.toLowerCase();
+		if(TestString.match(SearchTerm.toLowerCase())) {
+			document.getElementById("SpellList").innerHTML += '<a href="LiveSearchAutofill(\'' +SpellList[x].title.$t+ '\')">' +SpellList[x].title.$t+ '</a><br>';
+			Limit++;
+		}
+		else if(!(SearchTerm)) {
+			<!-- DisplayProductList_Redraw(); -->
+		}
+		else {
+			
+		}
+		if(Limit==5) {break;}
+	}
+}
+function LiveSearchAutofill(Result) {
+	document.getElementById("search").value = Result;
 }
 function NextUp() {
 	if(AllPlayers.length>0) {
@@ -337,6 +380,21 @@ var NewPlayerID = 0;
 var Round = 1;
 var Step = 0;
 var Game = new Player(0, "Game", 0);
+
+
+
+var SpellList;
+var Client = new XMLHttpRequest();
+Client.open('GET', 'https://spreadsheets.google.com/feeds/list/1cuwb3QSvWDD7GG5McdvyyRBpqycYuKMRsXgyrvxvLFI/default/public/values?alt=json', true);
+Client.onload = function()
+{
+	SpellList = JSON.parse(Client.responseText);
+	SpellList = SpellList.feed.entry;
+	console.log(SpellList);
+}
+Client.send();
+
+
 </script>
 
 <body style="margin: 0px;">
@@ -366,6 +424,10 @@ A quick tool to track initiative for Pen-and-Paper games.<br><br>
 		<div class="Indent">Description: <input type="text" id="AddBuffDescription" class="Right" style="width: 70%;"></input></div>
 	</form><br><br>
 	<form class="Form" action="javascript:AddBuff('Blind','Blinds a player for 3 rounds',3,3);"><button class="Right" style="clear:both;">Add Buff</button>Add Buff (Blind, 2 rounds, 3rd player):<br><br></form>
+	<input id="SpellListLevel" class="Right" value=5 >Level:</input>
+	<form class="Form" action="javascript:AddBuffAPI('Bless');"><button class="Right" style="clear:both;">Bless</button>Add Buff from API (Testing):</form>
+	<form class="Form" action="javascript:AddBuffAPI('Blindness/Deafness');"><button class="Right" style="clear:both;">Blindness/Deafness</button>Add Buff from API (Testing):</form>
+	<div id='SpellList' class='Right'></div><div id='SpellList_Search'>Search Spells:<form><input type='search' id='search' onkeyup='LiveSearch()'></form></div>
 	</div>
 
 	<div class="ToolColumn"><h3>DM Tools</h3>
