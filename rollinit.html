@@ -1,41 +1,137 @@
 <style>
-#Names {
-	float:left;
-}
-#Pointer {
-	float: left;
-	width: 25px;
-}
-#Round {
-	padding-bottom: 15px;
-}
-#Tools {
-	float: left;
-	width: 17%;
-	background-color: #555;
-	color: white;
-	padding: .625em;
-}
-#Window {
-	background-color: #999;
-	float: left;
-	width: 80%;
-	padding: .625em;
-}
-.Indent {
-	padding-left: 20px;
-	clear: both;
-}
-.Right {
-	float:right;
-}
-</style>
+/* Main Divs */
+	
+	#Alerts {
+		float: left;
+		padding: 5px 10px;
+		color: #c7384c;
+		font-weight: 600;
+	}
+	#NextUp {
+		background-color: #e2b893;
+		color: #7d5f45;
+		padding-bottom: 15px;
+		padding: 0px 5px;
+		font-family: Arial, Helvetica, sans-serif;
+		font-weight: 600;
+		border: 2px solid;
+		height: 28px;
+	}
+	#Players {
+		border-top: solid 1px;
+		clear: both;
+		float: left;
+		font-family: Arial, Helvetica, sans-serif;
+		margin: 5px;
+		padding-top: 10px;
+	}
+	#Round {
+		background-color: #e2b893;
+		color: #7d5f45;
+		padding-bottom: 15px;
+		font-size: x-large;
+		float: left;
+		padding: 0px 15px;
+		font-family: Arial, Helvetica, sans-serif;
+		font-weight: 600;
+	}
+	#Tools {
+		float: left;
+		clear: both;
+		background-color: #555;
+		color: white;
+		padding: .625em;
+		width: 100%;
+	}
+	#Window {
+		background-color: #b78b65;
+		float: left;
+		padding: .625em;
+		width: 100%;
+		height: 60%;
+	}
+	.Form {
+		clear: both;
+		padding: 10px 5px;
+		background-color: gray;
+	}
+	.Indent {
+		padding: 2px 0px 0px 20px;
+		clear: both;
+	}
+	.Right {
+		float:right;
+	}
+	.ToolColumn {
+	    width: 23%;
+		float: left;
+		background-color: gray;
+		padding: 0px 10px;
+		margin: 5px;
+	}
+	.ToolColumn h3 {
+		border-bottom: solid 1px;
+		padding-bottom: 7px;
+		margin: 7px;
+	}
+	
+/*  / Main Divs */
+/*  Player Divs */
+	
+	.Active {
+		background-color: #e2b893;
+	}
+	.BuffDescription {
+		display: none;
+		padding-left: 20px;
+		float: right;
+	}
+	.BuffDescription:hover {
+		display: block;
+	}
+	.Cell {
+		display: table-cell;
+		padding: 5px 10px;
+	}
+	.Player {
+		display: table-row;
+	}
+	.Roll {
+		width: 25px;
+	}
+	.RoundAdjustGroup {
+		width: 6px;
+		float: right;
+	}
+	.RoundAdjust {
+		padding: 4px;
+		line-height: 2px;
+		width: 20px;
+		border: none;
+	}
+	
+/*  / Player Divs */
+/*  Responsive theme */
+
+	body {
+	}
+	@media only screen and (max-width: 600px) {
+		.ToolColumn {
+			width: 92%;
+		}
+	}
+	
+/*  / Responsive theme */
+	</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 
 <script>
 class Player {
-	constructor(Name, Roll) {
+	constructor(ThisID, Name, Roll) {
 		this.name = Name;
 		this.roll = Roll;
+		this.playerid = ThisID;
 		
 		this.stats = [];
 		this.stats.str = 0;
@@ -52,112 +148,247 @@ class Player {
 		
 		this.buffs = [];
 	}
+
+	AgeBuffs() {
+		for(var x in this.buffs) {
+			this.buffs[x].age++;
+		}
+		for(var x in this.buffs) {
+			if(this.buffs[x].age>this.buffs[x].duration) {
+				this.Debuff(x);
+			}
+		}
+		this.buffs = this.buffs.filter(n => n)
+	}
+	Debuff(BuffPosition) {
+		if(this.name!="Game") {document.getElementById("Alerts").innerHTML+= '"' +this.buffs[BuffPosition].name+ '" is no longer effecting ' +this.name+ '. ';}
+		else {document.getElementById("Alerts").innerHTML+= this.buffs[BuffPosition].description;}
+		this.buffs[BuffPosition] = null;
+	}
 }
 class Buff {
-	constructor(BuffName, Duration, Targets) {
-		this.duration = Duration;
+	constructor(Name, Description, Duration) {
 		this.age = 0;
+		this.duration = Duration;
+		this.name = Name;
+		this.description = Description;
 	}
+	
 }
 
-function AddBuff(Name,Duration,Targets) {
-	NewBuff = new Buff(Name, Duration);
-	
-	for(var x in AllPlayers) {
-		if(x==Targets) {
-			AllPlayers[x].buffs.push(NewBuff);
-			console.log(AllPlayers[x]);
+function AddBuff(Name,Description,Duration,Target) {
+	if(Name) {var ThisName = Name;} else {var ThisName = document.getElementById("AddBuffName").value;}
+	if(Description) {var ThisDescription = Description;} else {var ThisDescription = document.getElementById("AddBuffDescription").value;}
+	if(Duration) {var ThisDuration = Duration;} else {var ThisDuration = document.getElementById("AddBuffDuration").value;}
+	if(Target!=null) {
+		var NewBuff = new Buff(ThisName, ThisDescription, ThisDuration);
+		AllPlayers[Target].buffs.push(NewBuff);
+	}
+	else {
+		var PlayerSelectArray = document.getElementsByClassName("PlayerSelect");
+		var WasAnyoneChecked = false;
+		for(var x in PlayerSelectArray) {
+			var NewBuff = new Buff(ThisName, ThisDescription, ThisDuration);
+			if(PlayerSelectArray[x].checked) {
+				AllPlayers[x].buffs.push(NewBuff);
+				WasAnyoneChecked = true;
+			}
+		}
+		if(!(WasAnyoneChecked)) {
+			window.alert("Please select a player to receive your buff, and try again.");
 		}
 	}
+	
+	RedrawList();
 }
 function AddPlayer() {
 	var NewPlayerName = document.getElementById("AddPlayerName").value;
-	var NewPlayerRoll = document.getElementById("AddPlayerRoll").value;
+	var NewPlayerRoll = document.getElementById("AddPlayerRoll").value
 	
-	NewPlayer = new Player(NewPlayerName, NewPlayerRoll);
-	AllPlayers[NewPlayerID] = NewPlayer;
-	NewPlayerID++;
-	AllPlayers.sort(function(a, b) {
-    return a.roll - b.roll;
-	});
-	
-	if(Round == 1 && Step == 0) {//Move the pointer if initiative has already started
-		<!-- console.log("Don't move Pointer"); -->
+	if(Round == 1 && Step == 0) {//Move the Highlight if initiative has already started
 	}
 	else {
-		if(parseInt(AllPlayers[Step].roll)>NewPlayerRoll) {
+		if(AllPlayers[Step].roll<NewPlayerRoll) {
 			Step++;
 		}
-		<!-- console.log("Pointer Moved!"); -->
 	}
+
+	var NewPlayer = new Player(NewPlayerID, NewPlayerName, NewPlayerRoll);
+	AllPlayers.push(NewPlayer);
+	NewPlayerID = NewPlayerID + 1;
 	
 	RedrawList();
-	console.log(AllPlayers);
+}
+function LoadTestPlayers() {//Load Test Players
+	var NewPlayer = new Player(0, "Jason", 5);
+	AllPlayers.push(NewPlayer);
+	NewPlayerID = NewPlayerID + 1;
+
+	var NewPlayer = new Player(1, "David", 10);
+	AllPlayers.push(NewPlayer);
+	NewPlayerID = NewPlayerID + 1;
+
+	var NewPlayer = new Player(2, "Brenda", 15);
+	AllPlayers.push(NewPlayer);
+	NewPlayerID = NewPlayerID + 1;
+
+	var NewPlayer = new Player(3, "X", 8);
+	AllPlayers.push(NewPlayer);
+	NewPlayerID = NewPlayerID + 1;
+	
+	RedrawList();
+}
+function KillPlayer(PlayerID) {
+	AllPlayers[PlayerID] = null;
+	AllPlayers = AllPlayers.filter(n => n)
+	for(var x in AllPlayers) {
+		AllPlayers[x].playerid = x;
+	}
 }
 function NextUp() {
-	Step++;
-		
-	var InitPosition = Step % AllPlayers.length;
-	if(InitPosition == 0) {Round++;Step=0;}
-	document.getElementById("Round").innerHTML = "Round " + Round;
+	if(AllPlayers.length>0) {
+		Step++;
+		document.getElementById("Alerts").innerHTML = "";
 
-	RedrawList();
+		var InitPosition = Step % AllPlayers.length;
+		if(InitPosition == 0) {Round++;Step=0;Game.AgeBuffs();}
+		document.getElementById("Round").innerHTML = "Round " + Round;
+
+		AllPlayers[Step].AgeBuffs();
+		RedrawList();
+	}
 }
 function RedrawList() {
-	document.getElementById("Names").innerHTML = "";
+	SortPlayersByRoll();
+	document.getElementById("Players").innerHTML = "";
 	for (x in AllPlayers) {//Redraw Players
-		document.getElementById("Names").innerHTML += AllPlayers[x].roll +' - '+ AllPlayers[x].name + "<br>";
+		RedrawPlayer(AllPlayers[x], x);
 	}
 	
-	{//Redraw Pointer
-		var PointerDiv = document.getElementById("Pointer");
-		PointerDiv.innerHTML = "";
-		var InitPosition = Step % AllPlayers.length;
-		for(var x=0;x<(InitPosition);x++) {
-			PointerDiv.innerHTML += "<br>";
+	{//Highlight Player
+		for(var x in AllPlayers) {
+			if(x == Step) {
+				document.getElementById(AllPlayers[x].playerid).className += " Active";
+			}
 		}
-		PointerDiv.innerHTML += ">";
 	}
 }
+function RedrawPlayer(Player, Position) {
+	document.getElementById("Players").innerHTML += '<div id="'+Player.playerid+'" class="Player"></div>';
+	{
+		document.getElementById(Player.playerid).innerHTML += '<input type="checkbox" id="Checkbox-'+Player.playerid+'" class="PlayerSelect"></input>';
+		document.getElementById(Player.playerid).innerHTML += '<form class="Cell" action="javascript:RerollInit('+Player.playerid+');"><input id="Roll-'+Player.playerid+'" class="" style="width:23px;padding:2px;text-align:right;" value="'+Math.round(Player.roll)+'"></input></form>';
+		document.getElementById(Player.playerid).innerHTML += '<div id="Name-'+Player.playerid+'" class="Cell">'+Player.name+'</div>';
+		if(Player.buffs[0]) {
+			document.getElementById(Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'" class="Buff"></div>';
+			for(var x in Player.buffs) {
+				document.getElementById("Buffs-"+Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'-'+x+'" class="Cell">' +Player.buffs[x].name +' ('+Player.buffs[x].age+'/'+Player.buffs[x].duration+')<div id="BuffDescription-'+Player.playerid+'-'+x+'" style="display:none;">'+Player.buffs[x].description+'</div></div>';
 
+				//Set up tooltips
+				document.getElementById('Buffs-'+Player.playerid+'-'+x).onmouseover = function() {
+				  document.getElementById('BuffDescription-'+Player.playerid+'-'+x).style.display = 'block';
+				}
+				document.getElementById('Buffs-'+Player.playerid+'-'+x).onmouseout = function() {
+				  document.getElementById('BuffDescription-'+Player.playerid+'-'+x).style.display = 'none';
+				}
+			}
+		}
+	}
+}
+function RerollInit(PlayerID) {
+	var ThisRoll = parseFloat(document.getElementById('Roll-'+PlayerID).value);
+	SortPlayersById();
+	
+	if (ThisRoll<0) {KillPlayer(PlayerID);}
+	else {AllPlayers[PlayerID].roll = ThisRoll;}
+	RedrawList();
+}
+function RoundAdjust(PlayerID, Position, Style) {//Remove this?
+	if (Style=="+") {
+		AllPlayers[Position].roll = AllPlayers[Position - 1].roll +0.01;
+		RedrawList();
+	}
+	if (Style=="-") {
+		AllPlayers[Position].roll = AllPlayers[Position + 1].roll -0.01;
+		RedrawList();
+	}
+}
+function SetTimer() {
+	console.log(Game.buffs[0]);
+	var SetTimerRounds = document.getElementById("SetTimerRounds").value;
+	var NewBuff = new Buff("SetTimer", "The DM's " +SetTimerRounds+ " round timer has expired.", SetTimerRounds);
+	Game.buffs.push(NewBuff);
+	console.log(Game.buffs[0]);
+		
+	RedrawList();	
+}
+function SortPlayersById() {
+	AllPlayers.sort(function(a, b) {
+		return a.playerid - b.playerid;
+	});
+}
+function SortPlayersByRoll() {
+	AllPlayers.sort(function(a, b) {
+		return b.roll - a.roll;
+	});
+}
 var AllPlayers = [];
 var NewPlayerID = 0;
 var Round = 1;
 var Step = 0;
+var Game = new Player(0, "Game", 0);
 </script>
 
 <body style="margin: 0px;">
-<div id="Tools">
-<form action="javascript:AddPlayer();">Add Player: <br>
-	<div class="Indent">Player Name: <input type="text" id="AddPlayerName" class="Right"></input></div>
-	<div class="Indent">Player Roll: <input type="text" id="AddPlayerRoll" class="Right"></input></div>
-	<button style="display:none;"></button>
-</form>
-
-<form action="javascript:NextUp();">Next Up: <br>
-	<button class="Right">Next Up</button>
-</form>
-
-<br><hr>
-
-<form action="javascript:AddBuff('Blind',3,0);">Add Buff (Blind, 3, 1st Player): <br>
-	<button class="Right">Add Buff</button>
-</form>
-
-<br><br><br><br>Known Issues:<ul>
-<li>Duplicate rolls are alphabetical, not by Dex</li>
-<li></li>
-</ul>
-<br>Features (AKA, Fixed Issues):<ul>
-<li>Getting to the top of the order increments "Round"</li>
-<li>Adding players in mid-combat doesn't affect pointed position of "current round".</li>
-</ul>
-</div>
 <div id="Window">
 	<div id="Round">Round 1</div>
-	<div id="Pointer">></div>
-	<div id="Names">Add players</div>
-	<div id="Buffs"></div>
+	<form action="javascript:NextUp();"><button id="NextUp">Next Up</button></form>
+	<div id="Alerts"></div>
+
+	<div id="Players"></div>
+</div>
+<div id="Tools">
+A quick tool to track initiative for Pen-and-Paper games.<br><br>
+	<div id="ToolColumn-1" class="ToolColumn"><h3>Players</h3>
+	<form class="Form" action="javascript:AddPlayer();">Add Player:
+		<button type="submit" class="Right" style="clear:both;">Add Player</button>
+		<div class="Indent">Player Name: <input type="text" id="AddPlayerName" class="Right" style=""></input></div>
+		<div class="Indent">Player Roll: <input type="text" id="AddPlayerRoll" class="Right"></input></div>
+	</form>
+	<form class="Form" action="javascript:LoadTestPlayers();"><button class="Right" style="clear:both;">Load Players</button>Load Test Players:<br><br></form>
+	</div>
+
+	<div  id="ToolColumn-2	" class="ToolColumn"><h3>Buffs</h3>
+	<form class="Form" action="javascript:AddBuff();"><button class="Right" style="clear:both;">Add Buff</button>
+		Add Buff:
+		<div class="Indent" style="width: 55%;float:left;">Name: <input type="text" id="AddBuffName" class="Right" style="width: 70%;"></input></div>
+		<div class="" style="width: 35%;float:right;clear:none;">Duration: <input type="text" id="AddBuffDuration" class="Right" style="width: 40%;"></input></div>
+		<div class="Indent">Description: <input type="text" id="AddBuffDescription" class="Right" style="width: 70%;"></input></div>
+	</form><br><br>
+	<form class="Form" action="javascript:AddBuff('Blind','Blinds a player for 3 rounds',3,3);"><button class="Right" style="clear:both;">Add Buff</button>Add Buff (Blind, 2 rounds, 3rd player):<br><br></form>
+	</div>
+
+	<div class="ToolColumn"><h3>DM Tools</h3>
+		<form class="Form" action="javascript:SetTimer();">Set Timer: <div class="Indent">Number of Rounds: <input type="text" id="SetTimerRounds" class="Right"></input></div></form>
+	</div>
+	
+	<div class="ToolColumn">
+	<h3>Known Issues</h3><ul>
+	<li>Tooltips only work on last player</li>
+	<li>Feature Request - Manual Debuff</li>
+	<li></li>
+	</ul>
+	<h3>Features (AKA, Fixed Issues):</h3><ul>
+	<li>Getting to the top of the order increments "Round"</li>
+	<li>Adding players in mid-combat doesn't affect pointed position of "current round".</li>
+	<li>Buffs auto-expire after their duration, don't count current round as "round 1".</li>
+	<li>Player order can be changed to allow "Delaying" or sorting by Dex.</li>
+	<li>Initiative can be manually reset.</li>
+	<li>Setting an initiative below 0 kills a player.</li>
+	<li>Players with multiple buffs expiring the same round don't lose both buffs.</li>
+	</ul>
+	</div>
+
 </div>
 </body>
 <script>
