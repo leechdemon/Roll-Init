@@ -52,7 +52,7 @@
 	}
 	.Form {
 		clear: both;
-		padding: 10px 5px;
+		padding: 5px 5px;
 		background-color: gray;
 	}
 	.Indent {
@@ -142,6 +142,7 @@ class Player {
 		this.name = Name;
 		this.roll = Roll;
 		this.playerid = ThisID;
+		this.pc = false;
 		
 		this.stats = [];
 		this.stats.str = 0;
@@ -274,19 +275,22 @@ function AddPlayer() {
 	RedrawList();
 }
 function LoadTestPlayers() {//Load Test Players
-	var NewPlayer = new Player(0, "Jason", 5);
+	var NewPlayer = new Player(NewPlayerID, "Jason", 5);
 	AllPlayers.push(NewPlayer);
+	AllPlayers[NewPlayerID].pc = true;
 	NewPlayerID = NewPlayerID + 1;
 
-	var NewPlayer = new Player(1, "David", 10);
+	var NewPlayer = new Player(NewPlayerID, "David", 10);
 	AllPlayers.push(NewPlayer);
+	AllPlayers[NewPlayerID].pc = true;
 	NewPlayerID = NewPlayerID + 1;
 
-	var NewPlayer = new Player(2, "Brenda", 15);
+	var NewPlayer = new Player(NewPlayerID, "Brenda", 15);
 	AllPlayers.push(NewPlayer);
+	AllPlayers[NewPlayerID].pc = true;
 	NewPlayerID = NewPlayerID + 1;
 
-	var NewPlayer = new Player(3, "X", 8);
+	var NewPlayer = new Player(NewPlayerID, "X", 8);
 	AllPlayers.push(NewPlayer);
 	NewPlayerID = NewPlayerID + 1;
 	
@@ -336,6 +340,22 @@ function NextUp() {
 		RedrawList();
 	}
 }
+function PromotePlayerToPC() {
+	var PlayerSelectArray = document.getElementsByClassName("PlayerSelect");
+	var WasAnyoneChecked = false;
+	for(var x in PlayerSelectArray) {
+		if(PlayerSelectArray[x].checked) {
+			AllPlayers[x].pc = true;
+			WasAnyoneChecked = true;
+		}
+	}
+	if(!(WasAnyoneChecked)) {
+		window.alert("Please select a player to receive your buff, and try again.");
+	}
+	else {
+		RedrawList();
+	}
+}
 function RedrawList() {
 	SortPlayersByRoll();
 	document.getElementById("Players").innerHTML = "";
@@ -356,8 +376,13 @@ function RedrawPlayer(Player, Position) {
 	{
 		document.getElementById(Player.playerid).innerHTML += '<input type="checkbox" id="Checkbox-'+Player.playerid+'" class="PlayerSelect"></input>';
 		document.getElementById(Player.playerid).innerHTML += '<form class="Cell" action="javascript:RerollInit('+Player.playerid+');"><input id="Roll-'+Player.playerid+'" class="" style="width:23px;padding:2px;text-align:right;" value="'+Math.round(Player.roll)+'"></input></form>';
-		document.getElementById(Player.playerid).innerHTML += '<div id="Name-'+Player.playerid+'" class="Cell">'+Player.name+'</div>';
-		if(Player.buffs[0]) {
+		{//Player Name
+			document.getElementById(Player.playerid).innerHTML += '<div id="Name-'+Player.playerid+'" class="Cell">'+Player.name+'</div>';
+			if(Player.pc) {
+				document.getElementById(Player.playerid).style.fontWeight = "Bold";
+			}
+		}
+		if(Player.buffs[0]) {//Player Buffs
 			document.getElementById(Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'" class="Buff"></div>';
 			for(var x in Player.buffs) {
 				document.getElementById("Buffs-"+Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'-'+x+'" class="Cell">' +Player.buffs[x].name +' ('+Player.buffs[x].age+'/'+Player.buffs[x].duration+')<div id="BuffDescription-'+Player.playerid+'-'+x+'" style="display:none;width:30%;">'+Player.buffs[x].description+'</div></div>';
@@ -382,14 +407,29 @@ function RerollInit(PlayerID) {
 	RedrawList();
 }
 function ResetInit() {
+	var HasPlayers = false;
 	for(var x in AllPlayers) {
-		AllPlayers[x].roll = 0;
+		if(AllPlayers[x].pc==true) {HasPlayers = true;}
 	}
-	Round = 1;
-	Step = 0;
-	document.getElementById("Round").innerHTML = "Round " + Round;
-	
-	RedrawList();
+	if(HasPlayers) {
+		for(var x in AllPlayers) {
+			if(AllPlayers[x].pc==true) {
+				AllPlayers[x].roll = 0;
+			}
+			else {
+				AllPlayers[x]=null;
+			}
+		}
+		AllPlayers = AllPlayers.filter(n => n);
+		Round = 1;
+		Step = 0;
+		document.getElementById("Round").innerHTML = "Round " + Round;
+		
+		RedrawList();
+	}
+	else {
+		window.alert('Please assign at least one player as PC before resetting initiative.');
+	}
 }
 function RoundAdjust(PlayerID, Position, Style) {//Remove this?
 	if (Style=="+") {
@@ -460,6 +500,7 @@ A quick tool to track initiative for Pen-and-Paper games.<br><br>
 			<div class="Indent">Player Roll: <input type="text" id="AddPlayerRoll" class="Right"></input></div>
 		</form>
 		<form class="Form" action="javascript:ResetInit();"><button class="Right" style="clear:both;">Reset</button>Reset Initiative:<br><br></form>
+		<form class="Form" action="javascript:PromotePlayerToPC();"><button class="Right" style="clear:both;">Promote</button>Promote Player to PC:<br><br></form>
 		<form class="Form" action="javascript:LoadTestPlayers();"><button class="Right" style="clear:both;">Load Players</button>Load Test Players:<br><br></form>
 	</div>
 
@@ -494,7 +535,6 @@ A quick tool to track initiative for Pen-and-Paper games.<br><br>
 	<li>Tooltips only work on last player</li>
 	<li>Feature Request - Manual Debuff</li>
 	<li>Make "same init sorting" more transparent</li>
-	<li>Differentiate Player / Enemy</li>
 	<li></li>
 	</ul>
 	<h3>Features (AKA, Fixed Issues):</h3><ul>
@@ -505,7 +545,8 @@ A quick tool to track initiative for Pen-and-Paper games.<br><br>
 	<li>Initiative can be manually reset.</li>
 	<li>Setting an initiative below 0 kills a player.</li>
 	<li>Players with multiple buffs expiring the same round don't lose both buffs.</li>
-	<li>"Reset Init" button zeroes init, restarts Rounds</li>
+	<li>Differentiates Player / Enemy</li>
+	<li>"Reset Init" button zeroes init, clears NPC's, restarts Rounds</li>
 	</ul>
 	</div>
 
