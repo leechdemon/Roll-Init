@@ -48,7 +48,7 @@
 		float: left;
 		padding: .625em;
 		width: 100%;
-		height: 60%;
+		height: 40%;
 	}
 	.Form {
 		clear: both;
@@ -122,6 +122,16 @@
 	}
 	
 /*  / Responsive theme */
+
+	#WaitingWarning {
+		text-align: center;
+		top: 0%;
+		position: absolute;
+		padding: 50px;
+	}
+	.WaitingHidden {
+		opacity:0.1;
+	}
 	</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -201,6 +211,50 @@ function AddBuff(Name,Description,Duration,Target) {
 	
 	RedrawList();
 }
+function AddBuffAPI() {
+	var BuffName = document.getElementById('AddBuffSpellName').value;
+	for(var x in SpellList) {
+		if(SpellList[x].title.$t == BuffName) {
+			var ThisDuration = SpellList[x].gsx$duration.$t;
+			var Level = document.getElementById("SpellListLevel").value;
+
+			try {
+				ThisDuration = ThisDuration.replace("level", Level);
+				ThisDuration = ThisDuration.replace("min.","*10");
+				ThisDuration = ThisDuration.replace("round","");
+				
+				ThisDuration = ThisDuration.replace("/","*");
+				ThisDuration = ThisDuration.replace(" ","");
+				
+				ThisDuration = eval(ThisDuration);
+			}
+			catch (err) {
+				window.alert('Something is wrong with the duration of this spell. Tell Jason what spell broke. Duration: "' +SpellList[x].gsx$duration.$t+ '"');
+				break;
+			}
+			
+			var ThisDescription = SpellList[x].gsx$description.$t;
+			var ThisName = SpellList[x].title.$t;
+			<!-- break; -->
+		}
+	}
+		
+	var PlayerSelectArray = document.getElementsByClassName("PlayerSelect");
+	var WasAnyoneChecked = false;
+	for(var x in PlayerSelectArray) {
+		var NewBuff = new Buff(ThisName, ThisDescription, ThisDuration);
+		if(PlayerSelectArray[x].checked) {
+			AllPlayers[x].buffs.push(NewBuff);
+			WasAnyoneChecked = true;
+		}
+	}
+	if(!(WasAnyoneChecked)) {
+		window.alert("Please select a player to receive your buff, and try again.");
+	}
+	
+	RedrawList();
+
+}
 function AddPlayer() {
 	var NewPlayerName = document.getElementById("AddPlayerName").value;
 	var NewPlayerRoll = document.getElementById("AddPlayerRoll").value
@@ -245,6 +299,30 @@ function KillPlayer(PlayerID) {
 		AllPlayers[x].playerid = x;
 	}
 }
+function LiveSearch() {
+	SearchTerm = document.getElementById("search").value;
+	document.getElementById("SpellList").innerHTML="";
+	var TestString = "";
+	var Limit = "";
+	
+	for(x=0;x<SpellList.length;x++) {
+		TestString = SpellList[x].title.$t.toLowerCase();
+		if(TestString.match(SearchTerm.toLowerCase())) {
+			document.getElementById("SpellList").innerHTML += '<a href="LiveSearchAutofill(\'' +SpellList[x].title.$t+ '\')">' +SpellList[x].title.$t+ '</a><br>';
+			Limit++;
+		}
+		else if(!(SearchTerm)) {
+			<!-- DisplayProductList_Redraw(); -->
+		}
+		else {
+			
+		}
+		if(Limit==5) {break;}
+	}
+}
+function LiveSearchAutofill(Result) {
+	document.getElementById("search").value = Result;
+}
 function NextUp() {
 	if(AllPlayers.length>0) {
 		Step++;
@@ -282,7 +360,7 @@ function RedrawPlayer(Player, Position) {
 		if(Player.buffs[0]) {
 			document.getElementById(Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'" class="Buff"></div>';
 			for(var x in Player.buffs) {
-				document.getElementById("Buffs-"+Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'-'+x+'" class="Cell">' +Player.buffs[x].name +' ('+Player.buffs[x].age+'/'+Player.buffs[x].duration+')<div id="BuffDescription-'+Player.playerid+'-'+x+'" style="display:none;">'+Player.buffs[x].description+'</div></div>';
+				document.getElementById("Buffs-"+Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'-'+x+'" class="Cell">' +Player.buffs[x].name +' ('+Player.buffs[x].age+'/'+Player.buffs[x].duration+')<div id="BuffDescription-'+Player.playerid+'-'+x+'" style="display:none;width:30%;">'+Player.buffs[x].description+'</div></div>';
 
 				//Set up tooltips
 				document.getElementById('Buffs-'+Player.playerid+'-'+x).onmouseover = function() {
@@ -303,6 +381,16 @@ function RerollInit(PlayerID) {
 	else {AllPlayers[PlayerID].roll = ThisRoll;}
 	RedrawList();
 }
+function ResetInit() {
+	for(var x in AllPlayers) {
+		AllPlayers[x].roll = 0;
+	}
+	Round = 1;
+	Step = 0;
+	document.getElementById("Round").innerHTML = "Round " + Round;
+	
+	RedrawList();
+}
 function RoundAdjust(PlayerID, Position, Style) {//Remove this?
 	if (Style=="+") {
 		AllPlayers[Position].roll = AllPlayers[Position - 1].roll +0.01;
@@ -314,11 +402,9 @@ function RoundAdjust(PlayerID, Position, Style) {//Remove this?
 	}
 }
 function SetTimer() {
-	console.log(Game.buffs[0]);
 	var SetTimerRounds = document.getElementById("SetTimerRounds").value;
 	var NewBuff = new Buff("SetTimer", "The DM's " +SetTimerRounds+ " round timer has expired.", SetTimerRounds);
 	Game.buffs.push(NewBuff);
-	console.log(Game.buffs[0]);
 		
 	RedrawList();	
 }
@@ -337,6 +423,24 @@ var NewPlayerID = 0;
 var Round = 1;
 var Step = 0;
 var Game = new Player(0, "Game", 0);
+
+
+
+var SpellList;
+var Client = new XMLHttpRequest();
+Client.open('GET', 'https://spreadsheets.google.com/feeds/list/1cuwb3QSvWDD7GG5McdvyyRBpqycYuKMRsXgyrvxvLFI/default/public/values?alt=json', true);
+Client.onload = function()
+{
+	SpellList = JSON.parse(Client.responseText);
+	SpellList = SpellList.feed.entry;
+	
+	document.getElementsByClassName("WaitingHidden")[0].classList.remove("WaitingHidden");
+	var WaitingWarning = document.getElementById("WaitingWarning");
+	WaitingWarning.parentNode.removeChild(WaitingWarning);
+}
+Client.send();
+
+
 </script>
 
 <body style="margin: 0px;">
@@ -350,22 +454,35 @@ var Game = new Player(0, "Game", 0);
 <div id="Tools">
 A quick tool to track initiative for Pen-and-Paper games.<br><br>
 	<div id="ToolColumn-1" class="ToolColumn"><h3>Players</h3>
-	<form class="Form" action="javascript:AddPlayer();">Add Player:
-		<button type="submit" class="Right" style="clear:both;">Add Player</button>
-		<div class="Indent">Player Name: <input type="text" id="AddPlayerName" class="Right" style=""></input></div>
-		<div class="Indent">Player Roll: <input type="text" id="AddPlayerRoll" class="Right"></input></div>
-	</form>
-	<form class="Form" action="javascript:LoadTestPlayers();"><button class="Right" style="clear:both;">Load Players</button>Load Test Players:<br><br></form>
+		<form class="Form" action="javascript:AddPlayer();">Add Player:
+			<button type="submit" class="Right" style="clear:both;">Add Player</button>
+			<div class="Indent">Player Name: <input type="text" id="AddPlayerName" class="Right" style=""></input></div>
+			<div class="Indent">Player Roll: <input type="text" id="AddPlayerRoll" class="Right"></input></div>
+		</form>
+		<form class="Form" action="javascript:ResetInit();"><button class="Right" style="clear:both;">Reset</button>Reset Initiative:<br><br></form>
+		<form class="Form" action="javascript:LoadTestPlayers();"><button class="Right" style="clear:both;">Load Players</button>Load Test Players:<br><br></form>
 	</div>
 
 	<div  id="ToolColumn-2	" class="ToolColumn"><h3>Buffs</h3>
-	<form class="Form" action="javascript:AddBuff();"><button class="Right" style="clear:both;">Add Buff</button>
+		<form class="Form" action="javascript:AddBuff();"><button class="Right" style="clear:both;">Add Buff</button>
 		Add Buff:
-		<div class="Indent" style="width: 55%;float:left;">Name: <input type="text" id="AddBuffName" class="Right" style="width: 70%;"></input></div>
-		<div class="" style="width: 35%;float:right;clear:none;">Duration: <input type="text" id="AddBuffDuration" class="Right" style="width: 40%;"></input></div>
-		<div class="Indent">Description: <input type="text" id="AddBuffDescription" class="Right" style="width: 70%;"></input></div>
-	</form><br><br>
-	<form class="Form" action="javascript:AddBuff('Blind','Blinds a player for 3 rounds',3,3);"><button class="Right" style="clear:both;">Add Buff</button>Add Buff (Blind, 2 rounds, 3rd player):<br><br></form>
+			<div class="Indent" style="width: 55%;float:left;">Name: <input type="text" id="AddBuffName" class="Right" style="width: 70%;"></input></div>
+			<div class="" style="width: 35%;float:right;clear:none;">Duration: <input type="text" id="AddBuffDuration" class="Right" style="width: 40%;"></input></div>
+			<div class="Indent">Description: <input type="text" id="AddBuffDescription" class="Right" style="width: 70%;"></input></div>
+		</form>
+		<br><br>
+		<form class="Form" action="javascript:AddBuff('Blind','Blinds a player for 3 rounds',3,3);"><button class="Right" style="clear:both;">Add Buff</button>Add Buff (Blind, 2 rounds, 3rd player):</form>
+		<br><br>
+		<div style="position:relative;">
+			<div id= "WaitingWarning">Please wait until API data is loaded before using these features...</div>
+			<div class="WaitingHidden">
+				<form class="Form" action="javascript:AddBuffAPI();"><input id="AddBuffSpellName" class="Right" style="clear:both;" value="Bless">Add Buff from API (Testing):
+				</form>
+				<input id="SpellListLevel" class="Right" value=5 >Level:</input>
+				<hr>
+				<div id='SpellList' class='Right'></div><div id='SpellList_Search' class="">Search Spells:<form><input type='search' id='search' onkeyup='LiveSearch()'></form></div>
+			</div>
+		</div>
 	</div>
 
 	<div class="ToolColumn"><h3>DM Tools</h3>
@@ -376,6 +493,8 @@ A quick tool to track initiative for Pen-and-Paper games.<br><br>
 	<h3>Known Issues</h3><ul>
 	<li>Tooltips only work on last player</li>
 	<li>Feature Request - Manual Debuff</li>
+	<li>Make "same init sorting" more transparent</li>
+	<li>Differentiate Player / Enemy</li>
 	<li></li>
 	</ul>
 	<h3>Features (AKA, Fixed Issues):</h3><ul>
@@ -386,6 +505,7 @@ A quick tool to track initiative for Pen-and-Paper games.<br><br>
 	<li>Initiative can be manually reset.</li>
 	<li>Setting an initiative below 0 kills a player.</li>
 	<li>Players with multiple buffs expiring the same round don't lose both buffs.</li>
+	<li>"Reset Init" button zeroes init, restarts Rounds</li>
 	</ul>
 	</div>
 
