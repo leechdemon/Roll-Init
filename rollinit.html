@@ -82,16 +82,20 @@
 		background-color: #e2b893;
 	}
 	.BuffDescription {
-		display: none;
-		padding-left: 20px;
-		float: right;
-	}
-	.BuffDescription:hover {
-		display: block;
+		max-width: 400px;
 	}
 	.Cell {
 		display: table-cell;
 		padding: 5px 10px;
+	}
+	.Debuff {
+		float: left;
+		width: 10px;
+		background-color: #e2b893;
+		margin-right: 5px;
+		border: 1px solid;
+		text-align: center;
+		font-size: smaller;
 	}
 	.Player {
 		display: table-row;
@@ -175,6 +179,7 @@ class Player {
 		if(this.name!="Game") {document.getElementById("Alerts").innerHTML+= '"' +this.buffs[BuffPosition].name+ '" is no longer effecting ' +this.name+ '. ';}
 		else {document.getElementById("Alerts").innerHTML+= this.buffs[BuffPosition].description;}
 		this.buffs[BuffPosition] = null;
+		this.buffs = this.buffs.filter(n => n)
 	}
 }
 class Buff {
@@ -258,8 +263,14 @@ function AddBuffAPI() {
 }
 function AddPlayer() {
 	var NewPlayerName = document.getElementById("AddPlayerName").value;
-	var NewPlayerRoll = document.getElementById("AddPlayerRoll").value
-	
+	var NewPlayerRoll = document.getElementById("AddPlayerRoll").value;
+	if(NewPlayerRoll=="") {
+		NewPlayerRoll = 0;
+	}
+	else {
+		NewPlayerRoll = parseFloat(NewPlayerRoll);
+	}
+	console.log(NewPlayerRoll);
 	if(Round == 1 && Step == 0) {//Move the Highlight if initiative has already started
 	}
 	else {
@@ -312,7 +323,7 @@ function LiveSearch() {
 	for(x=0;x<SpellList.length;x++) {
 		TestString = SpellList[x].title.$t.toLowerCase();
 		if(TestString.match(SearchTerm.toLowerCase())) {
-			document.getElementById("SpellList").innerHTML += '<a href="LiveSearchAutofill(\'' +SpellList[x].title.$t+ '\')">' +SpellList[x].title.$t+ '</a><br>';
+			document.getElementById("SpellList").innerHTML += '<a href="javascript:LiveSearchAutofill(\'' +SpellList[x].title.$t+ '\')">' +SpellList[x].title.$t+ '</a><br>';
 			Limit++;
 		}
 		else if(!(SearchTerm)) {
@@ -325,7 +336,7 @@ function LiveSearch() {
 	}
 }
 function LiveSearchAutofill(Result) {
-	document.getElementById("search").value = Result;
+	document.getElementById("AddBuffSpellName").value = Result;
 }
 function NextUp() {
 	if(AllPlayers.length>0) {
@@ -360,7 +371,27 @@ function RedrawList() {
 	SortPlayersByRoll();
 	document.getElementById("Players").innerHTML = "";
 	for (x in AllPlayers) {//Redraw Players
-		RedrawPlayer(AllPlayers[x], x);
+		RedrawPlayer(AllPlayers[x], AllPlayers[x].playerid);
+	}
+	for (x in AllPlayers) {//Add Event Listeners for Buffs
+		for(y in AllPlayers[x].buffs) {
+			(function () {
+				var Player = AllPlayers[x];
+				var Div = document.getElementById("Buffs-" + Player.playerid+'-'+y);
+				var Target = document.getElementById("BuffDescription-" + Player.playerid+'-'+y);
+				var BuffID = y;
+				
+				Div.addEventListener("mouseover", function() {Target.style.display="block";}, false);
+				Div.addEventListener("mouseout", function() {Target.style.display="none";}, false);
+				
+				Div = document.getElementById("Debuff-" + Player.playerid+'-'+y);
+				Div.addEventListener("click", function() {
+					<!-- console.log(ThisThingy); -->
+					Player.Debuff(BuffID);
+					RedrawList();
+				}, false);
+			}());
+		}
 	}
 	
 	{//Highlight Player
@@ -379,21 +410,17 @@ function RedrawPlayer(Player, Position) {
 		{//Player Name
 			document.getElementById(Player.playerid).innerHTML += '<div id="Name-'+Player.playerid+'" class="Cell">'+Player.name+'</div>';
 			if(Player.pc) {
-				document.getElementById(Player.playerid).style.fontWeight = "Bold";
+				document.getElementById("Name-" +Player.playerid).style.fontWeight = "Bold";
 			}
 		}
 		if(Player.buffs[0]) {//Player Buffs
-			document.getElementById(Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'" class="Buff"></div>';
+			document.getElementById(Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'" class="Buff Cell"></div>';
 			for(var x in Player.buffs) {
-				document.getElementById("Buffs-"+Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'-'+x+'" class="Cell">' +Player.buffs[x].name +' ('+Player.buffs[x].age+'/'+Player.buffs[x].duration+')<div id="BuffDescription-'+Player.playerid+'-'+x+'" style="display:none;width:30%;">'+Player.buffs[x].description+'</div></div>';
-
-				//Set up tooltips
-				document.getElementById('Buffs-'+Player.playerid+'-'+x).onmouseover = function() {
-				  document.getElementById('BuffDescription-'+Player.playerid+'-'+x).style.display = 'block';
-				}
-				document.getElementById('Buffs-'+Player.playerid+'-'+x).onmouseout = function() {
-				  document.getElementById('BuffDescription-'+Player.playerid+'-'+x).style.display = 'none';
-				}
+				document.getElementById("Buffs-"+Player.playerid).innerHTML += '<div id="Buffs-'+Player.playerid+'-'+x+'" class="Cell"><div id="Debuff-'+Player.playerid+'-'+x+'" Class="Debuff">x</div>' +Player.buffs[x].name +' ('+Player.buffs[x].age+'/'+Player.buffs[x].duration+')</div>';
+			}
+			document.getElementById(Player.playerid).innerHTML += '</div><div id="BuffDescription-'+Player.playerid+'" class="BuffDescription Cell"></div>';
+			for(var x in Player.buffs) {
+				document.getElementById("BuffDescription-"+Player.playerid).innerHTML += '<div id="BuffDescription-'+Player.playerid+'-'+x+'" style="display:none;" class="BuffDescription">'+Player.buffs[x].description+'</div>';
 			}
 		}
 	}
@@ -403,7 +430,9 @@ function RerollInit(PlayerID) {
 	SortPlayersById();
 	
 	if (ThisRoll<0) {KillPlayer(PlayerID);}
-	else {AllPlayers[PlayerID].roll = ThisRoll;}
+	else {
+		AllPlayers[PlayerID].roll = ThisRoll;
+	}
 	RedrawList();
 }
 function ResetInit() {
@@ -415,6 +444,11 @@ function ResetInit() {
 		for(var x in AllPlayers) {
 			if(AllPlayers[x].pc==true) {
 				AllPlayers[x].roll = 0;
+				if(AllPlayers[x].buffs.length>=1) {
+					for(var y in AllPlayers[x].buffs) {
+						AllPlayers[x].Debuff(y);
+					}
+				}
 			}
 			else {
 				AllPlayers[x]=null;
@@ -425,6 +459,7 @@ function ResetInit() {
 		Step = 0;
 		document.getElementById("Round").innerHTML = "Round " + Round;
 		
+		document.getElementById("Alerts").innerHTML = "";
 		RedrawList();
 	}
 	else {
@@ -449,14 +484,24 @@ function SetTimer() {
 	RedrawList();	
 }
 function SortPlayersById() {
-	AllPlayers.sort(function(a, b) {
-		return a.playerid - b.playerid;
-	});
+	<!-- AllPlayers.sort(function(a, b) { -->
+		<!-- return a.playerid - b.playerid; -->
+	<!-- }); -->
+	var NewInit = [];
+	for(var x in AllPlayers) {
+		var ThisPlayerID = AllPlayers[x].playerid;
+		NewInit[ThisPlayerID] = AllPlayers[x];
+	}
+	AllPlayers = NewInit;
+	
+	console.log(AllPlayers);
 }
 function SortPlayersByRoll() {
 	AllPlayers.sort(function(a, b) {
 		return b.roll - a.roll;
 	});
+	
+	AllPlayers = AllPlayers.filter(n => n)
 }
 var AllPlayers = [];
 var NewPlayerID = 0;
@@ -532,22 +577,22 @@ A quick tool to track initiative for Pen-and-Paper games.<br><br>
 	
 	<div class="ToolColumn">
 	<h3>Known Issues</h3><ul>
-	<li>Tooltips only work on last player</li>
-	<li>Feature Request - Manual Debuff</li>
-	<li>Make "same init sorting" more transparent</li>
+	<li>Make "same init sorting" more transparent. Currently uses hidden decimal sorting.</li>
 	<li></li>
 	</ul>
 	<h3>Features (AKA, Fixed Issues):</h3><ul>
-	<li>Getting to the top of the order increments "Round"</li>
-	<li>Adding players in mid-combat doesn't affect pointed position of "current round".</li>
-	<li>Buffs auto-expire after their duration, don't count current round as "round 1".</li>
-	<li>Player order can be changed to allow "Delaying" or sorting by Dex.</li>
-	<li>Initiative can be manually reset.</li>
-	<li>Setting an initiative below 0 kills a player.</li>
-	<li>Players with multiple buffs expiring the same round don't lose both buffs.</li>
-	<li>Differentiates Player / Enemy</li>
+	<li>Buffs can now be individually removed.</li>
+	<li>Tooltips work on all players</li>
+	<li>Deleting a player, then adding a player no longer breaks AddBuff, RerollInit</li>
 	<li>"Reset Init" button zeroes init, clears NPC's, restarts Rounds</li>
-	</ul>
+	<li>Differentiates Player / Enemy</li>
+	<li>Players with multiple buffs expiring the same round don't lose both buffs.</li>
+	<li>Setting an initiative below 0 kills a player.</li>
+	<li>Initiative can be manually reset.</li>
+	<li>Player order can be changed to allow "Delaying" or sorting by Dex.</li>
+	<li>Buffs auto-expire after their duration, don't count current round as "round 1".</li>
+	<li>Adding players in mid-combat doesn't affect pointed position of "current round".</li>
+	<li>Getting to the top of the order increments "Round"</li>	</ul>
 	</div>
 
 </div>
